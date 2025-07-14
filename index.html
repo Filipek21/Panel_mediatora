@@ -11,7 +11,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
+        min-height: 100vh;
         margin: 0;
     }
     .box {
@@ -21,12 +21,15 @@
         box-shadow: 0 6px 18px rgba(0,0,0,0.3);
         text-align: center;
         width: 340px;
+        position: relative;
+        max-height: 90vh;
+        overflow-y: auto;
     }
     h2 {
         margin-bottom: 15px;
         color: #4A00E0;
     }
-    input, button, textarea {
+    input, button, textarea, select {
         width: 100%;
         padding: 10px;
         margin: 6px 0;
@@ -54,6 +57,98 @@
         padding: 5px;
         font-size: 13px;
     }
+    .account-icon {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        cursor: pointer;
+        font-size: 20px;
+        color: #4A00E0;
+    }
+    .account-menu {
+        position: absolute;
+        top: 40px;
+        right: 0;
+        background: white;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        display: none;
+        z-index: 100;
+    }
+    .account-menu a {
+        display: block;
+        padding: 10px 20px;
+        text-decoration: none;
+        color: #333;
+        text-align: left;
+    }
+    .account-menu a:hover {
+        background-color: #f0f0f0;
+    }
+    .tab-content {
+        display: none;
+    }
+    .tab-content.active {
+        display: block;
+    }
+    .tabs {
+        display: flex;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #ccc;
+        flex-wrap: wrap;
+    }
+    .tab {
+        padding: 8px 15px;
+        cursor: pointer;
+        background: #f0f0f0;
+        margin-right: 5px;
+        border-radius: 5px 5px 0 0;
+        margin-bottom: 5px;
+    }
+    .tab.active {
+        background: #4A00E0;
+        color: white;
+    }
+    .action-buttons button {
+        width: auto;
+        padding: 5px 10px;
+        margin: 2px;
+        font-size: 12px;
+    }
+    .edit-btn {
+        background-color: #4CAF50;
+    }
+    .delete-btn {
+        background-color: #f44336;
+    }
+    .other-reason {
+        display: none;
+        margin-top: 10px;
+    }
+    .file-input-container {
+        margin: 10px 0;
+    }
+    .file-input-label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: bold;
+    }
+    .message-item {
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        text-align: left;
+    }
+    .message-sender {
+        font-weight: bold;
+        color: #4A00E0;
+    }
+    .message-date {
+        font-size: 0.8em;
+        color: #777;
+    }
 </style>
 </head>
 <body>
@@ -66,45 +161,975 @@
 </div>
 
 <div class="box" id="panelMediator" style="display:none;">
+    <div class="account-icon" onclick="toggleAccountMenu()">👤
+        <div class="account-menu" id="accountMenu">
+            <a href="#" onclick="showTab('settings')">Ustawienia</a>
+            <a href="#" onclick="logout()">Wyloguj</a>
+        </div>
+    </div>
+    
     <h2>Panel Mediatora/Nauczyciela</h2>
-    <p><strong>Terminarz spotkań mediacyjnych:</strong></p>
-    <table>
-        <tr><th>Data</th><th>Uczeń</th><th>Powód</th></tr>
-        <tr><td>2025-07-15</td><td>Jan Kowalski</td><td>Konflikt z kolegą</td></tr>
-        <tr><td>2025-07-17</td><td>Ala Nowak</td><td>Nieporozumienie w klasie</td></tr>
-    </table>
-    <p>Dodaj nowe zgłoszenie:</p>
-    <input type="text" id="studentName" placeholder="Imię i nazwisko ucznia">
-    <textarea id="reason" placeholder="Powód mediacji"></textarea>
-    <button onclick="sendToSheet()">Wyślij zgłoszenie</button>
-    <p id="status"></p>
-    <button onclick="logout()">Wyloguj</button>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('meetings')">Terminarz</div>
+        <div class="tab" onclick="showTab('addMeeting')">Dodaj spotkanie</div>
+        <div class="tab" onclick="showTab('cases')">Sprawy</div>
+        <div class="tab" onclick="showTab('messages')">Wiadomości</div>
+        <div class="tab" onclick="showTab('documents')">Dokumenty</div>
+    </div>
+    
+    <div id="meetingsTab" class="tab-content active">
+        <p><strong>Terminarz spotkań mediacyjnych:</strong></p>
+        <table id="meetingsTable">
+            <tr><th>Data</th><th>Uczeń</th><th>Powód</th><th>Dodane przez</th><th>Akcje</th></tr>
+        </table>
+    </div>
+    
+    <div id="addMeetingTab" class="tab-content">
+        <p>Dodaj nowe zgłoszenie:</p>
+        <input type="date" id="meetingDate">
+        <input type="text" id="studentName" placeholder="Imię i nazwisko ucznia">
+        <select id="meetingType" onchange="toggleOtherReason()">
+            <option value="">Wybierz typ spotkania</option>
+            <option value="Konflikt z kolegą">Konflikt z kolegą</option>
+            <option value="Nieporozumienie w klasie">Nieporozumienie w klasie</option>
+            <option value="Problemy z nauką">Problemy z nauką</option>
+            <option value="Inne">Inne</option>
+        </select>
+        <div id="otherReasonContainer" class="other-reason">
+            <input type="text" id="otherReason" placeholder="Podaj typ spotkania">
+        </div>
+        <textarea id="reason" placeholder="Opis"></textarea>
+        <button onclick="addMeeting()">Dodaj spotkanie</button>
+        <p id="status"></p>
+    </div>
+    
+    <div id="casesTab" class="tab-content">
+        <p><strong>Lista spraw:</strong></p>
+        <table id="casesTable">
+            <tr><th>ID</th><th>Uczeń</th><th>Status</th><th>Data zgłoszenia</th><th>Dodane przez</th><th>Akcje</th></tr>
+        </table>
+    </div>
+    
+    <div id="messagesTab" class="tab-content">
+        <h3>Wiadomości</h3>
+        <button onclick="showNewMessageForm()">Nowa wiadomość</button>
+        
+        <div id="newMessageForm" style="display:none; margin-top:15px;">
+            <select id="messageRecipient">
+                <option value="">Wybierz odbiorcę</option>
+            </select>
+            <input type="text" id="messageSubject" placeholder="Temat">
+            <textarea id="messageContent" placeholder="Treść wiadomości" rows="5"></textarea>
+            <button onclick="sendMessage()">Wyślij</button>
+            <p id="messageStatus"></p>
+        </div>
+        
+        <div id="messagesList" style="margin-top:15px;"></div>
+    </div>
+    
+    <div id="documentsTab" class="tab-content">
+        <h3>Dokumenty</h3>
+        <button onclick="showUploadForm()">Dodaj dokument</button>
+        
+        <div id="uploadForm" style="display:none; margin-top:15px;">
+            <input type="text" id="documentName" placeholder="Nazwa dokumentu">
+            <input type="text" id="documentStudent" placeholder="Uczeń (opcjonalnie)">
+            <div class="file-input-container">
+                <label class="file-input-label" for="documentFile">Wybierz plik:</label>
+                <input type="file" id="documentFile">
+            </div>
+            <button onclick="uploadDocument()">Prześlij</button>
+            <p id="uploadStatus"></p>
+        </div>
+        
+        <table id="documentsTable" style="margin-top:15px;">
+            <tr><th>Nazwa</th><th>Uczeń</th><th>Data</th><th>Dodane przez</th><th>Akcje</th></tr>
+        </table>
+    </div>
+    
+    <div id="settingsTab" class="tab-content">
+        <h3>Zmiana hasła</h3>
+        <input type="password" id="currentPassword" placeholder="Aktualne hasło">
+        <input type="password" id="newPassword" placeholder="Nowe hasło">
+        <input type="password" id="confirmPassword" placeholder="Potwierdź nowe hasło">
+        <button onclick="changePassword()">Zmień hasło</button>
+        <p id="passwordStatus"></p>
+    </div>
 </div>
 
 <div class="box" id="panelAdmin" style="display:none;">
+    <div class="account-icon" onclick="toggleAccountMenu()">👤
+        <div class="account-menu" id="adminAccountMenu">
+            <a href="#" onclick="showAdminTab('userManagement')">Użytkownicy</a>
+            <a href="#" onclick="logout()">Wyloguj</a>
+        </div>
+    </div>
+    
     <h2>Panel Administratora</h2>
-    <p>Opcje: resetowanie haseł, zarządzanie kontami</p>
-    <button onclick="resetPassword()">Resetuj hasło (symulacja)</button>
-    <p id="resetStatus"></p>
-    <button onclick="logout()">Wyloguj</button>
+    
+    <div class="tabs">
+        <div class="tab active" onclick="showAdminTab('adminDashboard')">Dashboard</div>
+        <div class="tab" onclick="showAdminTab('userManagement')">Użytkownicy</div>
+        <div class="tab" onclick="showAdminTab('adminMessages')">Wiadomości</div>
+        <div class="tab" onclick="showAdminTab('adminDocuments')">Dokumenty</div>
+    </div>
+    
+    <div id="adminDashboardTab" class="tab-content active">
+        <p><strong>Statystyki systemu:</strong></p>
+        <table>
+            <tr><th>Liczba aktywnych spraw</th><td id="activeCases">0</td></tr>
+            <tr><th>Liczba użytkowników</th><td id="userCount">0</td></tr>
+            <tr><th>Ostatnie logowanie</th><td id="lastLogin">-</td></tr>
+        </table>
+    </div>
+    
+    <div id="userManagementTab" class="tab-content">
+        <p><strong>Zarządzanie użytkownikami:</strong></p>
+        <button onclick="showAddUserForm()">Dodaj nowego użytkownika</button>
+        <div id="addUserForm" style="display:none; margin-top:15px;">
+            <input type="text" id="newUserName" placeholder="Nazwa użytkownika">
+            <input type="password" id="newUserPassword" placeholder="Hasło">
+            <select id="newUserRole">
+                <option value="mediator">Mediator</option>
+                <option value="teacher">Nauczyciel</option>
+                <option value="admin">Administrator</option>
+            </select>
+            <button onclick="addUser()">Dodaj użytkownika</button>
+            <p id="addUserStatus"></p>
+        </div>
+        <table id="usersTable" style="margin-top:15px;">
+            <tr><th>Login</th><th>Rola</th><th>Ostatnie logowanie</th><th>Akcje</th></tr>
+        </table>
+    </div>
+    
+    <div id="adminMessagesTab" class="tab-content">
+        <h3>Wiadomości systemowe</h3>
+        <button onclick="showAdminNewMessageForm()">Nowa wiadomość</button>
+        
+        <div id="adminNewMessageForm" style="display:none; margin-top:15px;">
+            <select id="adminMessageRecipient">
+                <option value="">Wybierz odbiorcę</option>
+                <option value="all">Wszyscy użytkownicy</option>
+            </select>
+            <input type="text" id="adminMessageSubject" placeholder="Temat">
+            <textarea id="adminMessageContent" placeholder="Treść wiadomości" rows="5"></textarea>
+            <button onclick="sendAdminMessage()">Wyślij</button>
+            <p id="adminMessageStatus"></p>
+        </div>
+        
+        <div id="adminMessagesList" style="margin-top:15px;"></div>
+    </div>
+    
+    <div id="adminDocumentsTab" class="tab-content">
+        <h3>Zarządzanie dokumentami</h3>
+        <table id="adminDocumentsTable" style="margin-top:15px;">
+            <tr><th>Nazwa</th><th>Uczeń</th><th>Data</th><th>Dodane przez</th><th>Akcje</th></tr>
+        </table>
+    </div>
 </div>
 
 <script>
+    // Dane aplikacji
     const users = {
-        mediator1: "c6d47fa7d2df4e68cf16da2ff8e1e301a35f886c2ec6224ba8a7139bb8a96e68",
-        nauczyciel1: "3d99fc831b72f2a59b61e27b3b3a0e29f1a644a5b08eec2a0a5a08a08f682279",
-        admin1: "14c3f68b8b52d4c9db34efb24aefb728d2e9fc51f5f0f7fc90c7d7297fadb40c"
+        mediator1: { 
+            password: "mediator123",
+            role: "mediator",
+            lastLogin: null
+        },
+        nauczyciel1: { 
+            password: "nauczyciel123",
+            role: "teacher",
+            lastLogin: null
+        },
+        admin1: { 
+            password: "admin123",
+            role: "admin",
+            lastLogin: null
+        }
     };
 
-    async function login() {
+    let currentUser = null;
+    let meetings = [];
+    let cases = [];
+    let messages = [];
+    let documents = [];
+    let systemUsers = [];
+    
+    // Funkcje pomocnicze
+    function toggleAccountMenu() {
+        const menu = currentUser.role === "admin" ? 
+            document.getElementById('adminAccountMenu') : 
+            document.getElementById('accountMenu');
+        menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+    }
+
+    function toggleOtherReason() {
+        const meetingType = document.getElementById('meetingType').value;
+        document.getElementById('otherReasonContainer').style.display = 
+            meetingType === "Inne" ? 'block' : 'none';
+    }
+
+    function showTab(tabName) {
+        document.querySelectorAll('#panelMediator .tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        document.querySelectorAll('#panelMediator .tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        document.getElementById(tabName + 'Tab').classList.add('active');
+        
+        const tabs = document.querySelectorAll('#panelMediator .tab');
+        for (let i = 0; i < tabs.length; i++) {
+            if (tabs[i].textContent.toLowerCase().includes(tabName)) {
+                tabs[i].classList.add('active');
+                break;
+            }
+        }
+        
+        if (tabName === 'meetings') {
+            refreshMeetingsTable();
+        } else if (tabName === 'cases') {
+            refreshCasesTable();
+        } else if (tabName === 'messages') {
+            refreshMessages();
+        } else if (tabName === 'documents') {
+            refreshDocumentsTable();
+        }
+    }
+
+    function showAdminTab(tabName) {
+        document.querySelectorAll('#panelAdmin .tab-content').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        document.querySelectorAll('#panelAdmin .tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        
+        document.getElementById(tabName + 'Tab').classList.add('active');
+        
+        const tabs = document.querySelectorAll('#panelAdmin .tab');
+        for (let i = 0; i < tabs.length; i++) {
+            if (tabs[i].textContent.toLowerCase().includes(tabName)) {
+                tabs[i].classList.add('active');
+                break;
+            }
+        }
+        
+        if (tabName === 'userManagement') {
+            refreshUsersTable();
+        } else if (tabName === 'adminMessages') {
+            refreshAdminMessages();
+        } else if (tabName === 'adminDocuments') {
+            refreshAdminDocumentsTable();
+        } else if (tabName === 'adminDashboard') {
+            updateDashboardStats();
+        }
+    }
+
+    function showNewMessageForm() {
+        const form = document.getElementById('newMessageForm');
+        form.style.display = form.style.display === 'block' ? 'none' : 'block';
+        
+        if (form.style.display === 'block') {
+            populateRecipients();
+        }
+    }
+
+    function showAdminNewMessageForm() {
+        const form = document.getElementById('adminNewMessageForm');
+        form.style.display = form.style.display === 'block' ? 'none' : 'block';
+        
+        if (form.style.display === 'block') {
+            populateAdminRecipients();
+        }
+    }
+
+    function showUploadForm() {
+        document.getElementById('uploadForm').style.display = 'block';
+    }
+
+    function showAddUserForm() {
+        document.getElementById('addUserForm').style.display = 'block';
+    }
+
+    function populateRecipients() {
+        const select = document.getElementById('messageRecipient');
+        select.innerHTML = '<option value="">Wybierz odbiorcę</option>';
+        
+        Object.keys(users).forEach(user => {
+            if (user !== currentUser.login) {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                select.appendChild(option);
+            }
+        });
+    }
+
+    function populateAdminRecipients() {
+        const select = document.getElementById('adminMessageRecipient');
+        select.innerHTML = '<option value="">Wybierz odbiorcę</option><option value="all">Wszyscy użytkownicy</option>';
+        
+        Object.keys(users).forEach(user => {
+            if (user !== currentUser.login) {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                select.appendChild(option);
+            }
+        });
+    }
+
+    // Funkcje odświeżania danych
+    function refreshMeetingsTable() {
+        const table = document.getElementById('meetingsTable');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
+        meetings.forEach(meeting => {
+            const row = table.insertRow();
+            row.insertCell(0).textContent = meeting.date;
+            row.insertCell(1).textContent = meeting.student;
+            row.insertCell(2).textContent = meeting.reason;
+            row.insertCell(3).textContent = meeting.addedBy;
+            
+            const actionsCell = row.insertCell(4);
+            actionsCell.className = 'action-buttons';
+            
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edytuj';
+            editBtn.className = 'edit-btn';
+            editBtn.onclick = () => editMeeting(meeting.id);
+            actionsCell.appendChild(editBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => deleteMeeting(meeting.id);
+            actionsCell.appendChild(deleteBtn);
+        });
+    }
+
+    function refreshCasesTable() {
+        const table = document.getElementById('casesTable');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
+        cases.forEach(caseItem => {
+            const row = table.insertRow();
+            row.insertCell(0).textContent = caseItem.id;
+            row.insertCell(1).textContent = caseItem.student;
+            row.insertCell(2).textContent = caseItem.status;
+            row.insertCell(3).textContent = caseItem.date;
+            row.insertCell(4).textContent = caseItem.addedBy;
+            
+            const actionsCell = row.insertCell(5);
+            actionsCell.className = 'action-buttons';
+            
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edytuj';
+            editBtn.className = 'edit-btn';
+            editBtn.onclick = () => editCase(caseItem.id);
+            actionsCell.appendChild(editBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => deleteCase(caseItem.id);
+            actionsCell.appendChild(deleteBtn);
+        });
+    }
+
+    function refreshMessages() {
+        const container = document.getElementById('messagesList');
+        container.innerHTML = '';
+        
+        const userMessages = messages.filter(msg => 
+            msg.recipient === currentUser.login || msg.sender === currentUser.login
+        );
+        
+        userMessages.forEach(msg => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-item';
+            
+            const sender = document.createElement('div');
+            sender.className = 'message-sender';
+            sender.textContent = `Od: ${msg.sender}`;
+            if (msg.sender === currentUser.login) {
+                sender.textContent = `Do: ${msg.recipient}`;
+            }
+            msgDiv.appendChild(sender);
+            
+            const date = document.createElement('div');
+            date.className = 'message-date';
+            date.textContent = msg.date;
+            msgDiv.appendChild(date);
+            
+            const subject = document.createElement('div');
+            subject.style.fontWeight = 'bold';
+            subject.textContent = msg.subject;
+            msgDiv.appendChild(subject);
+            
+            const content = document.createElement('div');
+            content.textContent = msg.content;
+            msgDiv.appendChild(content);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.style.marginTop = '5px';
+            deleteBtn.onclick = () => deleteMessage(msg.id);
+            msgDiv.appendChild(deleteBtn);
+            
+            container.appendChild(msgDiv);
+        });
+    }
+
+    function refreshAdminMessages() {
+        const container = document.getElementById('adminMessagesList');
+        container.innerHTML = '';
+        
+        const adminMessages = messages.filter(msg => 
+            msg.sender === currentUser.login || msg.recipient === "all"
+        );
+        
+        adminMessages.forEach(msg => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message-item';
+            
+            const sender = document.createElement('div');
+            sender.className = 'message-sender';
+            sender.textContent = msg.recipient === "all" ? 
+                `Do: Wszyscy użytkownicy` : 
+                `Do: ${msg.recipient}`;
+            msgDiv.appendChild(sender);
+            
+            const date = document.createElement('div');
+            date.className = 'message-date';
+            date.textContent = msg.date;
+            msgDiv.appendChild(date);
+            
+            const subject = document.createElement('div');
+            subject.style.fontWeight = 'bold';
+            subject.textContent = msg.subject;
+            msgDiv.appendChild(subject);
+            
+            const content = document.createElement('div');
+            content.textContent = msg.content;
+            msgDiv.appendChild(content);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.style.marginTop = '5px';
+            deleteBtn.onclick = () => deleteMessage(msg.id);
+            msgDiv.appendChild(deleteBtn);
+            
+            container.appendChild(msgDiv);
+        });
+    }
+
+    function refreshDocumentsTable() {
+        const table = document.getElementById('documentsTable');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
+        const userDocs = documents.filter(doc => 
+            doc.addedBy === currentUser.login || currentUser.role === "admin"
+        );
+        
+        userDocs.forEach(doc => {
+            const row = table.insertRow();
+            row.insertCell(0).textContent = doc.name;
+            row.insertCell(1).textContent = doc.student || "-";
+            row.insertCell(2).textContent = doc.date;
+            row.insertCell(3).textContent = doc.addedBy;
+            
+            const actionsCell = row.insertCell(4);
+            actionsCell.className = 'action-buttons';
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Pobierz';
+            downloadBtn.className = 'edit-btn';
+            downloadBtn.onclick = () => downloadDocument(doc.id);
+            actionsCell.appendChild(downloadBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => deleteDocument(doc.id);
+            actionsCell.appendChild(deleteBtn);
+        });
+    }
+
+    function refreshAdminDocumentsTable() {
+        const table = document.getElementById('adminDocumentsTable');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
+        documents.forEach(doc => {
+            const row = table.insertRow();
+            row.insertCell(0).textContent = doc.name;
+            row.insertCell(1).textContent = doc.student || "-";
+            row.insertCell(2).textContent = doc.date;
+            row.insertCell(3).textContent = doc.addedBy;
+            
+            const actionsCell = row.insertCell(4);
+            actionsCell.className = 'action-buttons';
+            
+            const downloadBtn = document.createElement('button');
+            downloadBtn.textContent = 'Pobierz';
+            downloadBtn.className = 'edit-btn';
+            downloadBtn.onclick = () => downloadDocument(doc.id);
+            actionsCell.appendChild(downloadBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => deleteDocument(doc.id);
+            actionsCell.appendChild(deleteBtn);
+        });
+    }
+
+    function refreshUsersTable() {
+        const table = document.getElementById('usersTable');
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
+        systemUsers.forEach(user => {
+            const row = table.insertRow();
+            row.insertCell(0).textContent = user.login;
+            row.insertCell(1).textContent = user.role;
+            row.insertCell(2).textContent = user.lastLogin || "-";
+            
+            const actionsCell = row.insertCell(3);
+            actionsCell.className = 'action-buttons';
+            
+            const editBtn = document.createElement('button');
+            editBtn.textContent = 'Edytuj';
+            editBtn.className = 'edit-btn';
+            editBtn.onclick = () => editUser(user.login);
+            actionsCell.appendChild(editBtn);
+            
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Usuń';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.onclick = () => deleteUser(user.login);
+            actionsCell.appendChild(deleteBtn);
+            
+            if (user.login !== currentUser.login) {
+                const resetBtn = document.createElement('button');
+                resetBtn.textContent = 'Resetuj hasło';
+                resetBtn.onclick = () => resetUserPassword(user.login);
+                actionsCell.appendChild(resetBtn);
+            }
+        });
+    }
+
+    function updateDashboardStats() {
+        document.getElementById('activeCases').textContent = 
+            cases.filter(c => c.status !== "rozwiązany").length;
+        document.getElementById('userCount').textContent = systemUsers.length;
+        document.getElementById('lastLogin').textContent = 
+            users[currentUser.login].lastLogin || "nigdy";
+    }
+
+    // Funkcje CRUD dla spotkań
+    function addMeeting() {
+        const date = document.getElementById('meetingDate').value;
+        const student = document.getElementById('studentName').value;
+        let type = document.getElementById('meetingType').value;
+        const reason = document.getElementById('reason').value;
+        
+        if (type === "Inne") {
+            type = document.getElementById('otherReason').value;
+            if (!type) {
+                alert("Podaj typ spotkania dla opcji 'Inne'");
+                return;
+            }
+        }
+        
+        if (!date || !student || !type || !reason) {
+            alert("Wypełnij wszystkie pola!");
+            return;
+        }
+        
+        const newMeeting = {
+            id: meetings.length > 0 ? Math.max(...meetings.map(m => m.id)) + 1 : 1,
+            date: date,
+            student: student,
+            reason: type + ": " + reason,
+            addedBy: currentUser.login,
+            status: "planned"
+        };
+        
+        meetings.push(newMeeting);
+        
+        const newCase = {
+            id: cases.length > 0 ? Math.max(...cases.map(c => c.id)) + 1 : 1,
+            student: student,
+            status: "nowy",
+            date: new Date().toISOString().split('T')[0],
+            addedBy: currentUser.login
+        };
+        cases.push(newCase);
+        
+        document.getElementById('status').textContent = "Dodano spotkanie i zgłoszenie sprawy!";
+        document.getElementById('meetingDate').value = '';
+        document.getElementById('studentName').value = '';
+        document.getElementById('meetingType').value = '';
+        document.getElementById('otherReason').value = '';
+        document.getElementById('reason').value = '';
+        
+        refreshMeetingsTable();
+        refreshCasesTable();
+        showTab('meetings');
+    }
+
+    function editMeeting(id) {
+        const meeting = meetings.find(m => m.id === id);
+        if (!meeting) return;
+        
+        const newReason = prompt("Edytuj powód spotkania:", meeting.reason);
+        if (newReason !== null) {
+            meeting.reason = newReason;
+            refreshMeetingsTable();
+        }
+    }
+
+    function deleteMeeting(id) {
+        if (confirm("Czy na pewno chcesz usunąć to spotkanie?")) {
+            meetings = meetings.filter(m => m.id !== id);
+            refreshMeetingsTable();
+        }
+    }
+
+    // Funkcje CRUD dla spraw
+    function editCase(id) {
+        const caseItem = cases.find(c => c.id === id);
+        if (!caseItem) return;
+        
+        const newStatus = prompt("Edytuj status sprawy:", caseItem.status);
+        if (newStatus !== null) {
+            caseItem.status = newStatus;
+            refreshCasesTable();
+        }
+    }
+
+    function deleteCase(id) {
+        if (confirm("Czy na pewno chcesz usunąć tę sprawę?")) {
+            cases = cases.filter(c => c.id !== id);
+            refreshCasesTable();
+        }
+    }
+
+    // Funkcje CRUD dla wiadomości
+    function sendMessage() {
+        const recipient = document.getElementById('messageRecipient').value;
+        const subject = document.getElementById('messageSubject').value;
+        const content = document.getElementById('messageContent').value;
+        
+        if (!recipient || !subject || !content) {
+            document.getElementById('messageStatus').textContent = "Wypełnij wszystkie pola!";
+            return;
+        }
+        
+        const newMessage = {
+            id: messages.length > 0 ? Math.max(...messages.map(m => m.id)) + 1 : 1,
+            sender: currentUser.login,
+            recipient: recipient,
+            subject: subject,
+            content: content,
+            date: new Date().toLocaleString(),
+            read: false
+        };
+        
+        messages.push(newMessage);
+        
+        document.getElementById('messageStatus').textContent = "Wiadomość wysłana!";
+        document.getElementById('messageRecipient').value = '';
+        document.getElementById('messageSubject').value = '';
+        document.getElementById('messageContent').value = '';
+        
+        refreshMessages();
+    }
+
+    function sendAdminMessage() {
+        const recipient = document.getElementById('adminMessageRecipient').value;
+        const subject = document.getElementById('adminMessageSubject').value;
+        const content = document.getElementById('adminMessageContent').value;
+        
+        if (!recipient || !subject || !content) {
+            document.getElementById('adminMessageStatus').textContent = "Wypełnij wszystkie pola!";
+            return;
+        }
+        
+        if (recipient === "all") {
+            Object.keys(users).forEach(user => {
+                if (user !== currentUser.login) {
+                    const newMessage = {
+                        id: messages.length > 0 ? Math.max(...messages.map(m => m.id)) + 1 : 1,
+                        sender: currentUser.login,
+                        recipient: user,
+                        subject: subject,
+                        content: content,
+                        date: new Date().toLocaleString(),
+                        read: false
+                    };
+                    messages.push(newMessage);
+                }
+            });
+        } else {
+            const newMessage = {
+                id: messages.length > 0 ? Math.max(...messages.map(m => m.id)) + 1 : 1,
+                sender: currentUser.login,
+                recipient: recipient,
+                subject: subject,
+                content: content,
+                date: new Date().toLocaleString(),
+                read: false
+            };
+            messages.push(newMessage);
+        }
+        
+        document.getElementById('adminMessageStatus').textContent = 
+            recipient === "all" ? "Wiadomość wysłana do wszystkich!" : "Wiadomość wysłana!";
+        document.getElementById('adminMessageRecipient').value = '';
+        document.getElementById('adminMessageSubject').value = '';
+        document.getElementById('adminMessageContent').value = '';
+        
+        refreshAdminMessages();
+    }
+
+    function deleteMessage(id) {
+        if (confirm("Czy na pewno chcesz usunąć tę wiadomość?")) {
+            messages = messages.filter(m => m.id !== id);
+            
+            if (currentUser.role === "admin") {
+                refreshAdminMessages();
+            } else {
+                refreshMessages();
+            }
+        }
+    }
+
+    // Funkcje CRUD dla dokumentów
+    function uploadDocument() {
+        const name = document.getElementById('documentName').value;
+        const student = document.getElementById('documentStudent').value;
+        const fileInput = document.getElementById('documentFile');
+        const file = fileInput.files[0];
+        
+        if (!name || !file) {
+            document.getElementById('uploadStatus').textContent = "Wypełnij wymagane pola!";
+            return;
+        }
+        
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const newDocument = {
+                id: documents.length > 0 ? Math.max(...documents.map(d => d.id)) + 1 : 1,
+                name: name,
+                student: student || null,
+                fileName: file.name,
+                fileType: file.type,
+                content: e.target.result,
+                date: new Date().toLocaleString(),
+                addedBy: currentUser.login
+            };
+            
+            documents.push(newDocument);
+            
+            document.getElementById('uploadStatus').textContent = "Dokument przesłany!";
+            document.getElementById('documentName').value = '';
+            document.getElementById('documentStudent').value = '';
+            document.getElementById('documentFile').value = '';
+            
+            refreshDocumentsTable();
+            if (currentUser.role === "admin") {
+                refreshAdminDocumentsTable();
+            }
+        };
+        
+        reader.readAsDataURL(file);
+    }
+
+    function downloadDocument(id) {
+        const doc = documents.find(d => d.id === id);
+        if (!doc) return;
+        
+        const link = document.createElement('a');
+        link.href = doc.content;
+        link.download = doc.fileName || doc.name;
+        link.click();
+    }
+
+    function deleteDocument(id) {
+        if (confirm("Czy na pewno chcesz usunąć ten dokument?")) {
+            documents = documents.filter(d => d.id !== id);
+            
+            refreshDocumentsTable();
+            if (currentUser.role === "admin") {
+                refreshAdminDocumentsTable();
+            }
+        }
+    }
+
+    // Funkcje CRUD dla użytkowników (tylko admin)
+    function addUser() {
+        const username = document.getElementById('newUserName').value.trim();
+        const password = document.getElementById('newUserPassword').value;
+        const role = document.getElementById('newUserRole').value;
+        
+        if (!username || !password || !role) {
+            alert("Wypełnij wszystkie pola!");
+            return;
+        }
+        
+        if (users[username]) {
+            alert("Użytkownik o takiej nazwie już istnieje!");
+            return;
+        }
+        
+        users[username] = {
+            password: password,
+            role: role,
+            lastLogin: null
+        };
+        
+        systemUsers.push({
+            login: username,
+            role: role,
+            lastLogin: null
+        });
+        
+        document.getElementById('addUserStatus').textContent = "Dodano nowego użytkownika!";
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserPassword').value = '';
+        
+        refreshUsersTable();
+    }
+
+    function editUser(username) {
+        const user = systemUsers.find(u => u.login === username);
+        if (!user) return;
+        
+        const newRole = prompt("Edytuj rolę użytkownika (mediator/teacher/admin):", user.role);
+        if (newRole !== null && ["mediator", "teacher", "admin"].includes(newRole)) {
+            user.role = newRole;
+            users[username].role = newRole;
+            refreshUsersTable();
+        } else if (newRole !== null) {
+            alert("Nieprawidłowa rola! Dopuszczalne wartości: mediator, teacher, admin");
+        }
+    }
+
+    function deleteUser(username) {
+        if (username === currentUser.login) {
+            alert("Nie możesz usunąć własnego konta!");
+            return;
+        }
+        
+        if (confirm(`Czy na pewno chcesz usunąć użytkownika ${username}?`)) {
+            delete users[username];
+            systemUsers = systemUsers.filter(u => u.login !== username);
+            refreshUsersTable();
+        }
+    }
+
+    function resetUserPassword(username) {
+        const newPassword = prompt("Wprowadź nowe hasło dla użytkownika:");
+        if (newPassword) {
+            users[username].password = newPassword;
+            alert("Hasło zostało zresetowane!");
+        }
+    }
+
+    // Funkcje zmiany hasła
+    function changePassword() {
+        const currentPass = document.getElementById('currentPassword').value;
+        const newPass = document.getElementById('newPassword').value;
+        const confirmPass = document.getElementById('confirmPassword').value;
+        
+        if (!currentPass || !newPass || !confirmPass) {
+            document.getElementById('passwordStatus').textContent = "Wypełnij wszystkie pola!";
+            return;
+        }
+        
+        if (newPass !== confirmPass) {
+            document.getElementById('passwordStatus').textContent = "Nowe hasła nie są identyczne!";
+            return;
+        }
+        
+        if (currentPass !== users[currentUser.login].password) {
+            document.getElementById('passwordStatus').textContent = "Aktualne hasło jest nieprawidłowe!";
+            return;
+        }
+        
+        users[currentUser.login].password = newPass;
+        
+        document.getElementById('passwordStatus').textContent = "Hasło zostało zmienione!";
+        document.getElementById('currentPassword').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('confirmPassword').value = '';
+    }
+
+    // Logowanie i wylogowywanie
+    function login() {
         const login = document.getElementById('loginInput').value.trim();
         const password = document.getElementById('passwordInput').value;
-        const hashed = await hash(password);
-        if(users[login] && hashed === users[login]) {
-            if(login === "admin1"){
+        
+        if (!login || !password) {
+            alert("Wprowadź login i hasło!");
+            return;
+        }
+        
+        if (users[login] && password === users[login].password) {
+            currentUser = {
+                login: login,
+                role: users[login].role
+            };
+            
+            // Aktualizacja ostatniego logowania
+            users[login].lastLogin = new Date().toLocaleString();
+            
+            // Inicjalizacja systemUsers jeśli pusta
+            if (systemUsers.length === 0) {
+                systemUsers = Object.keys(users).map(user => ({
+                    login: user,
+                    role: users[user].role,
+                    lastLogin: users[user].lastLogin
+                }));
+            } else {
+                // Aktualizacja ostatniego logowania w systemUsers
+                const userIndex = systemUsers.findIndex(u => u.login === login);
+                if (userIndex !== -1) {
+                    systemUsers[userIndex].lastLogin = users[login].lastLogin;
+                }
+            }
+            
+            if (users[login].role === "admin") {
                 showPanel("admin");
+                refreshUsersTable();
+                refreshAdminMessages();
+                refreshAdminDocumentsTable();
+                updateDashboardStats();
             } else {
                 showPanel("mediator");
+                refreshMeetingsTable();
+                refreshCasesTable();
+                refreshMessages();
+                refreshDocumentsTable();
             }
         } else {
             alert("Nieprawidłowy login lub hasło!");
@@ -113,54 +1138,61 @@
 
     function showPanel(role) {
         document.getElementById('loginBox').style.display = 'none';
-        if(role === "mediator") {
+        if (role === "mediator") {
             document.getElementById('panelMediator').style.display = 'block';
-        } else if(role === "admin") {
+        } else if (role === "admin") {
             document.getElementById('panelAdmin').style.display = 'block';
         }
     }
 
     function logout() {
+        currentUser = null;
         document.getElementById('loginBox').style.display = 'block';
         document.getElementById('panelMediator').style.display = 'none';
         document.getElementById('panelAdmin').style.display = 'none';
         document.getElementById('loginInput').value = '';
         document.getElementById('passwordInput').value = '';
-        document.getElementById('status').innerText = '';
-        document.getElementById('resetStatus').innerText = '';
+        document.getElementById('status').textContent = '';
+        document.getElementById('resetStatus').textContent = '';
+        
+        document.getElementById('accountMenu').style.display = 'none';
+        document.getElementById('adminAccountMenu').style.display = 'none';
     }
 
-    async function hash(str) {
-        const msgUint8 = new TextEncoder().encode(str);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
-        const hashArray = Array.from(new Uint8Array(hashBuffer));
-        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-
-    function resetPassword() {
-        document.getElementById('resetStatus').innerText = "Hasło zostało zresetowane (symulacja).";
-    }
-
-    function sendToSheet() {
-        const name = document.getElementById('studentName').value;
-        const reason = document.getElementById('reason').value;
-        if(!name || !reason) {
-            alert("Wypełnij wszystkie pola!");
-            return;
+    // Inicjalizacja
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.account-icon') && !e.target.closest('.account-menu')) {
+            document.getElementById('accountMenu').style.display = 'none';
+            document.getElementById('adminAccountMenu').style.display = 'none';
         }
-        fetch("YOUR_SCRIPT_URL", {
-            method: "POST",
-            mode: "no-cors",
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: `student=${encodeURIComponent(name)}&reason=${encodeURIComponent(reason)}`
-        }).then(() => {
-            document.getElementById('status').innerText = "Wysłano!";
-            document.getElementById('studentName').value = '';
-            document.getElementById('reason').value = '';
-        }).catch(() => {
-            document.getElementById('status').innerText = "Błąd wysyłania!";
-        });
+    });
+
+    // Inicjalizacja przykładowych danych
+    function initializeSampleData() {
+        if (meetings.length === 0) {
+            meetings = [
+                { id: 1, date: "2025-07-15", student: "Jan Kowalski", reason: "Konflikt z kolegą: Spór o miejsce w ławce", addedBy: "mediator1", status: "planned" },
+                { id: 2, date: "2025-07-17", student: "Ala Nowak", reason: "Nieporozumienie w klasie: Oskarżenia o kradzież", addedBy: "nauczyciel1", status: "planned" }
+            ];
+        }
+        
+        if (cases.length === 0) {
+            cases = [
+                { id: 1, student: "Jan Kowalski", status: "w toku", date: "2025-07-10", addedBy: "mediator1" },
+                { id: 2, student: "Ala Nowak", status: "rozwiązany", date: "2025-07-12", addedBy: "nauczyciel1" }
+            ];
+        }
+        
+        if (systemUsers.length === 0) {
+            systemUsers = Object.keys(users).map(user => ({
+                login: user,
+                role: users[user].role,
+                lastLogin: users[user].lastLogin
+            }));
+        }
     }
+
+    initializeSampleData();
 </script>
 </body>
 </html>
