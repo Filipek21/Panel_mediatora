@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Panel Mediatora Szkolnego</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #8EC5FC, #E0C3FC);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        margin: 0;
+    }
+    .box {
+        background: white;
+        padding: 20px 30px;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+        text-align: center;
+        width: 340px;
+    }
+    h2 {
+        margin-bottom: 15px;
+        color: #4A00E0;
+    }
+    input, button, textarea {
+        width: 100%;
+        padding: 10px;
+        margin: 6px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+    }
+    button {
+        background-color: #4A00E0;
+        color: white;
+        cursor: pointer;
+        font-size: 16px;
+        transition: background-color 0.3s;
+    }
+    button:hover {
+        background-color: #3b00b3;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+    }
+    td, th {
+        border: 1px solid #ccc;
+        padding: 5px;
+        font-size: 13px;
+    }
+</style>
+</head>
+<body>
+
+<div class="box" id="loginBox">
+    <h2>Logowanie</h2>
+    <input type="text" id="loginInput" placeholder="Login">
+    <input type="password" id="passwordInput" placeholder="Hasło">
+    <button onclick="login()">Zaloguj</button>
+</div>
+
+<div class="box" id="panelMediator" style="display:none;">
+    <h2>Panel Mediatora/Nauczyciela</h2>
+    <p><strong>Terminarz spotkań mediacyjnych:</strong></p>
+    <table>
+        <tr><th>Data</th><th>Uczeń</th><th>Powód</th></tr>
+        <tr><td>2025-07-15</td><td>Jan Kowalski</td><td>Konflikt z kolegą</td></tr>
+        <tr><td>2025-07-17</td><td>Ala Nowak</td><td>Nieporozumienie w klasie</td></tr>
+    </table>
+    <p>Dodaj nowe zgłoszenie:</p>
+    <input type="text" id="studentName" placeholder="Imię i nazwisko ucznia">
+    <textarea id="reason" placeholder="Powód mediacji"></textarea>
+    <button onclick="sendToSheet()">Wyślij zgłoszenie</button>
+    <p id="status"></p>
+    <button onclick="logout()">Wyloguj</button>
+</div>
+
+<div class="box" id="panelAdmin" style="display:none;">
+    <h2>Panel Administratora</h2>
+    <p>Opcje: resetowanie haseł, zarządzanie kontami</p>
+    <button onclick="resetPassword()">Resetuj hasło (symulacja)</button>
+    <p id="resetStatus"></p>
+    <button onclick="logout()">Wyloguj</button>
+</div>
+
+<script>
+    const users = {
+        mediator1: "c6d47fa7d2df4e68cf16da2ff8e1e301a35f886c2ec6224ba8a7139bb8a96e68",
+        nauczyciel1: "3d99fc831b72f2a59b61e27b3b3a0e29f1a644a5b08eec2a0a5a08a08f682279",
+        admin1: "14c3f68b8b52d4c9db34efb24aefb728d2e9fc51f5f0f7fc90c7d7297fadb40c"
+    };
+
+    async function login() {
+        const login = document.getElementById('loginInput').value.trim();
+        const password = document.getElementById('passwordInput').value;
+        const hashed = await hash(password);
+        if(users[login] && hashed === users[login]) {
+            if(login === "admin1"){
+                showPanel("admin");
+            } else {
+                showPanel("mediator");
+            }
+        } else {
+            alert("Nieprawidłowy login lub hasło!");
+        }
+    }
+
+    function showPanel(role) {
+        document.getElementById('loginBox').style.display = 'none';
+        if(role === "mediator") {
+            document.getElementById('panelMediator').style.display = 'block';
+        } else if(role === "admin") {
+            document.getElementById('panelAdmin').style.display = 'block';
+        }
+    }
+
+    function logout() {
+        document.getElementById('loginBox').style.display = 'block';
+        document.getElementById('panelMediator').style.display = 'none';
+        document.getElementById('panelAdmin').style.display = 'none';
+        document.getElementById('loginInput').value = '';
+        document.getElementById('passwordInput').value = '';
+        document.getElementById('status').innerText = '';
+        document.getElementById('resetStatus').innerText = '';
+    }
+
+    async function hash(str) {
+        const msgUint8 = new TextEncoder().encode(str);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function resetPassword() {
+        document.getElementById('resetStatus').innerText = "Hasło zostało zresetowane (symulacja).";
+    }
+
+    function sendToSheet() {
+        const name = document.getElementById('studentName').value;
+        const reason = document.getElementById('reason').value;
+        if(!name || !reason) {
+            alert("Wypełnij wszystkie pola!");
+            return;
+        }
+        fetch("YOUR_SCRIPT_URL", {
+            method: "POST",
+            mode: "no-cors",
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            body: `student=${encodeURIComponent(name)}&reason=${encodeURIComponent(reason)}`
+        }).then(() => {
+            document.getElementById('status').innerText = "Wysłano!";
+            document.getElementById('studentName').value = '';
+            document.getElementById('reason').value = '';
+        }).catch(() => {
+            document.getElementById('status').innerText = "Błąd wysyłania!";
+        });
+    }
+</script>
+</body>
+</html>
